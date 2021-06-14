@@ -1,7 +1,7 @@
 # 🤖Prenotatore Agende UniPi
 Uno script per Tampermonkey/Greasemonkey che consente di automatizzare la ricerca di posti liberi e la loro prenotazione sulla [piattaforma Agende](https://agende.unipi.it/) dell'Università di Pisa, evitando di dover perdere tempo a controllare periodicamente la pagina.
 
-![screenshot](screenshot/pannello1.png =300x300)
+<img src="screenshot/pannello1.png" height="350" />
 
 ⚠️ __Disclaimer__: questo è uno strumento __non ufficiale__: non è realizzato né approvato dall'Università di Pisa; è realizzato da uno studente per gli studenti. Non si fornisce nessuna garanzia sul suo funzionamento e non si assume responsabilità sull'uso che altri potrebbero farne!
 
@@ -25,7 +25,7 @@ Uno script per Tampermonkey/Greasemonkey che consente di automatizzare la ricerc
    * _Limitati all'essenziale: evita di togliere posto agli altri inutilmente!_
 4. Fatto! Lo script inizierà ad aggiornare periodicamente la pagina finché non troverà posto negli slot selezionati. In quel caso effettuerà automaticamente la prenotazione, e sarai avvertito da un avviso acustico.
 
-![screenshot](screenshot/finestra.png)
+<img src="screenshot/finestra.png" width="600" />
 
 ### NB:
 * Perché il prenotatore possa funzionare, il computer deve essere mantenuto acceso e connesso a internet, e la pagina dell'agenda deve essere mantenuta aperta nel browser. Se il computer viene spento o la pagina chiusa, il prenotatore smetterà di controllare! Si consiglia di disattivare lo standby nelle impostazioni del sistema operativo.
