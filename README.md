@@ -27,6 +27,9 @@ Uno script per Tampermonkey/Greasemonkey che consente di automatizzare la ricerc
 
 <img src="screenshot/finestra.png" width="600" />
 
-### NB:
+NB:
 * Perché il prenotatore possa funzionare, il computer deve essere mantenuto acceso e connesso a internet, e la pagina dell'agenda deve essere mantenuta aperta nel browser. Se il computer viene spento o la pagina chiusa, il prenotatore smetterà di controllare! Si consiglia di disattivare lo standby nelle impostazioni del sistema operativo.
 * Puoi regolare la frequenza di aggiornamento nelle impostazioni.
+
+# Limitazioni note
+* Se per qualunque ragione il refresh della pagina fallisce (ad es. perché in quel momento la connessione è assente, il server del sito Agende non risponde, o risponde con un codice di errore), il prenotatore smette di funzionare e, quando la connessione/il server ritorna a funzionare, non è in grado di riattivarsi da solo; per riattivarlo è necessario un intervento manuale (bisogna ricaricare manualmente la pagina). Questo è dovuto al fatto che i browser non consentono alle estensioni di iniettare script nelle pagine di errore del browser.
