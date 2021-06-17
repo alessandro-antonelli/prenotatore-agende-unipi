@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prenotatore Agende UniPi
 // @namespace    https://alessandro-antonelli.github.io/
-// @version      1.3
+// @version      1.4
 // @description  Esegue automaticamente la prenotazione sul sito agende.unipi.it
 // @author       Alessandro Antonelli
 // @match        https://agende.unipi.it/*
@@ -11,7 +11,7 @@
 // ==/UserScript==
 // Source code repository; https://github.com/alessandro-antonelli/prenotatore-agende-unipi
 
-const versione = '1.3';
+const versione = '1.4';
 
 var CodiceAgenda;
 var OraAvvio;
@@ -23,6 +23,7 @@ var TimerTieniAggiornataDataRiavvio;
 var TimerAggiornaCountdown;
 var TimerLampeggioSpia;
 var PrenotazioniInCorso = 0;
+var RiconoscimentoClickManuali = true;
 
 const SimboloInfo = '<img width="16" height="16" style="margin-right: 3px" alt="Info" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+CiAgPGNpcmNsZSBjeT0iMjQiIGN4PSIyNCIgcj0iMjMiIHN0cm9rZT0iIzAwMCIgZmlsbD0ibm9uZSIvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iMTEuNiIgcj0iNC43Ii8+CiAgPHBhdGggZD0ibTE3LjQgMTguOHYyLjE1aDEuMTNjMi4yNiAwIDIuMjYgMS4zOCAyLjI2IDEuMzh2MTUuMXMwIDEuMzgtMi4yNiAxLjM4aC0xLjEzdjIuMDhoMTQuMnYtMi4wOGgtMS4xM2MtMi4yNiAwLTIuMjYtMS4zOC0yLjI2LTEuMzh2LTE4LjYiLz4KPC9zdmc+" />';
 const ThrobberCaricamento = '<img alt="caricamento..." style="object-fit: cover; height: 25px; width: 32px" height="32" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBzdHlsZT0ibWFyZ2luOiBhdXRvOyBiYWNrZ3JvdW5kOiBub25lOyBkaXNwbGF5OiBibG9jazsgc2hhcGUtcmVuZGVyaW5nOiBhdXRvOyIgd2lkdGg9IjIwMHB4IiBoZWlnaHQ9IjIwMHB4IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQiPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4MCw1MCkiPgo8ZyB0cmFuc2Zvcm09InJvdGF0ZSgwKSI+CjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSI2IiBmaWxsPSIjMzc4OGQ4IiBmaWxsLW9wYWNpdHk9IjEiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGJlZ2luPSItMC44NzVzIiB2YWx1ZXM9IjEuNiAxLjY7MSAxIiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSI+PC9hbmltYXRlVHJhbnNmb3JtPgogIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9ImZpbGwtb3BhY2l0eSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMTswIiBiZWdpbj0iLTAuODc1cyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzEuMjEzMjAzNDM1NTk2NDMsNzEuMjEzMjAzNDM1NTk2NDMpIj4KPGcgdHJhbnNmb3JtPSJyb3RhdGUoNDUpIj4KPGNpcmNsZSBjeD0iMCIgY3k9IjAiIHI9IjYiIGZpbGw9IiMzNzg4ZDgiIGZpbGwtb3BhY2l0eT0iMC44NzUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGJlZ2luPSItMC43NXMiIHZhbHVlcz0iMS42IDEuNjsxIDEiIGtleVRpbWVzPSIwOzEiIGR1cj0iMXMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIj48L2FuaW1hdGVUcmFuc2Zvcm0+CiAgPGFuaW1hdGUgYXR0cmlidXRlTmFtZT0iZmlsbC1vcGFjaXR5IiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSIxOzAiIGJlZ2luPSItMC43NXMiPjwvYW5pbWF0ZT4KPC9jaXJjbGU+CjwvZz4KPC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwLDgwKSI+CjxnIHRyYW5zZm9ybT0icm90YXRlKDkwKSI+CjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSI2IiBmaWxsPSIjMzc4OGQ4IiBmaWxsLW9wYWNpdHk9IjAuNzUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGJlZ2luPSItMC42MjVzIiB2YWx1ZXM9IjEuNiAxLjY7MSAxIiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSI+PC9hbmltYXRlVHJhbnNmb3JtPgogIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9ImZpbGwtb3BhY2l0eSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMTswIiBiZWdpbj0iLTAuNjI1cyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjguNzg2Nzk2NTY0NDAzNTc3LDcxLjIxMzIwMzQzNTU5NjQzKSI+CjxnIHRyYW5zZm9ybT0icm90YXRlKDEzNSkiPgo8Y2lyY2xlIGN4PSIwIiBjeT0iMCIgcj0iNiIgZmlsbD0iIzM3ODhkOCIgZmlsbC1vcGFjaXR5PSIwLjYyNSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJzY2FsZSIgYmVnaW49Ii0wLjVzIiB2YWx1ZXM9IjEuNiAxLjY7MSAxIiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSI+PC9hbmltYXRlVHJhbnNmb3JtPgogIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9ImZpbGwtb3BhY2l0eSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMTswIiBiZWdpbj0iLTAuNXMiPjwvYW5pbWF0ZT4KPC9jaXJjbGU+CjwvZz4KPC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIwLDUwLjAwMDAwMDAwMDAwMDAxKSI+CjxnIHRyYW5zZm9ybT0icm90YXRlKDE4MCkiPgo8Y2lyY2xlIGN4PSIwIiBjeT0iMCIgcj0iNiIgZmlsbD0iIzM3ODhkOCIgZmlsbC1vcGFjaXR5PSIwLjUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGJlZ2luPSItMC4zNzVzIiB2YWx1ZXM9IjEuNiAxLjY7MSAxIiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSI+PC9hbmltYXRlVHJhbnNmb3JtPgogIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9ImZpbGwtb3BhY2l0eSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMTswIiBiZWdpbj0iLTAuMzc1cyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjguNzg2Nzk2NTY0NDAzNTcsMjguNzg2Nzk2NTY0NDAzNTc3KSI+CjxnIHRyYW5zZm9ybT0icm90YXRlKDIyNSkiPgo8Y2lyY2xlIGN4PSIwIiBjeT0iMCIgcj0iNiIgZmlsbD0iIzM3ODhkOCIgZmlsbC1vcGFjaXR5PSIwLjM3NSI+CiAgPGFuaW1hdGVUcmFuc2Zvcm0gYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJzY2FsZSIgYmVnaW49Ii0wLjI1cyIgdmFsdWVzPSIxLjYgMS42OzEgMSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiPjwvYW5pbWF0ZVRyYW5zZm9ybT4KICA8YW5pbWF0ZSBhdHRyaWJ1dGVOYW1lPSJmaWxsLW9wYWNpdHkiIGtleVRpbWVzPSIwOzEiIGR1cj0iMXMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiB2YWx1ZXM9IjE7MCIgYmVnaW49Ii0wLjI1cyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDkuOTk5OTk5OTk5OTk5OTksMjApIj4KPGcgdHJhbnNmb3JtPSJyb3RhdGUoMjcwKSI+CjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSI2IiBmaWxsPSIjMzc4OGQ4IiBmaWxsLW9wYWNpdHk9IjAuMjUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGJlZ2luPSItMC4xMjVzIiB2YWx1ZXM9IjEuNiAxLjY7MSAxIiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSI+PC9hbmltYXRlVHJhbnNmb3JtPgogIDxhbmltYXRlIGF0dHJpYnV0ZU5hbWU9ImZpbGwtb3BhY2l0eSIga2V5VGltZXM9IjA7MSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMTswIiBiZWdpbj0iLTAuMTI1cyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzEuMjEzMjAzNDM1NTk2NDMsMjguNzg2Nzk2NTY0NDAzNTcpIj4KPGcgdHJhbnNmb3JtPSJyb3RhdGUoMzE1KSI+CjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSI2IiBmaWxsPSIjMzc4OGQ4IiBmaWxsLW9wYWNpdHk9IjAuMTI1Ij4KICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InNjYWxlIiBiZWdpbj0iMHMiIHZhbHVlcz0iMS42IDEuNjsxIDEiIGtleVRpbWVzPSIwOzEiIGR1cj0iMXMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIj48L2FuaW1hdGVUcmFuc2Zvcm0+CiAgPGFuaW1hdGUgYXR0cmlidXRlTmFtZT0iZmlsbC1vcGFjaXR5IiBrZXlUaW1lcz0iMDsxIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSIxOzAiIGJlZ2luPSIwcyI+PC9hbmltYXRlPgo8L2NpcmNsZT4KPC9nPgo8L2c+CjwhLS0gW2xkaW9dIGdlbmVyYXRlZCBieSBodHRwczovL2xvYWRpbmcuaW8vIC0tPjwvc3ZnPg==" />';
@@ -234,7 +235,7 @@ function CaricaUI()
         input[type=checkbox]:disabled { cursor: not-allowed; }
 
         .MioTooltip { position: relative; display: inline-block; }
-        .MioTooltip .TestoTooltip { top: 120%; left: 50%; width: 350px; margin-left: -175px; visibility: hidden; background-color: black; color: #fff; text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 50; }
+        .MioTooltip .TestoTooltip { top: 120%; left: 50%; max-width: 350px; margin-left: -50%; visibility: hidden; background-color: black; color: #fff; text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 50; }
         .MioTooltip:hover .TestoTooltip { visibility: visible; }
         .MioTooltip .TestoTooltip::after { content: " "; position: absolute; bottom: 100%; left: 50%; margin-left: -8px; border-width: 8px; border-style: solid; border-color: transparent transparent black transparent; }
     </style>`;
@@ -279,10 +280,10 @@ function CaricaUI()
                 vengono pubblicati nuovi slot.</span>
 		    </label>
 
-            <div>
-                <span style="font-size: 80%; font-style: italic; float: right; max-width: 50%;">` + SimboloInfo +
-                    `Seleziona gli slot che vuoi siano prenotati automaticamente.</span>
-                <h3 style="color: #0F4A7C; font-weight: bold; display: inline-block;">Slot disponibili</h3>
+            <div style="display: flex; flex-wrap: wrap;">
+                <h3 style="color: #0F4A7C; font-weight: bold; display: inline-block; flex: 0 0 auto; margin-right: 8px;">Slot disponibili</h3>
+                <span style="font-size: 80%; font-style: italic; display: inline-block; flex: 1 1; min-width: 100px;">` +
+                    SimboloInfo + `Seleziona gli slot che vuoi siano prenotati automaticamente.</span>
             </div>
             <div id="ElencoSlot" style="border: 1px solid silver; min-height: 150px; background-color: white;">
                 <div style="text-align: center; font-size: 120%; padding: 8px;">
@@ -307,9 +308,9 @@ function CaricaUI()
 
     var RiquadroApp = document.createElement('div');
     RiquadroApp.id = 'RiquadroApp';
-    RiquadroApp.style.minWidth = '250px';
+    RiquadroApp.style.minWidth = '220px';
     RiquadroApp.style.maxWidth = 'fit-content';
-    RiquadroApp.style.flex = '1 1 35vw';
+    RiquadroApp.style.flex = '2 1 28vw';
     RiquadroApp.style.padding = '8px';
     RiquadroApp.style.borderRadius = '20px';
     RiquadroApp.style.backgroundColor = '#DDDDDD';
@@ -323,7 +324,7 @@ function CaricaUI()
 
     var ContainerAgenda = document.querySelector("body > div > section > div.container");
     ContainerAgenda.style.minWidth = '500px';
-    ContainerAgenda.style.flex = '2 1 60vw';
+    ContainerAgenda.style.flex = '1 1 67vw';
     ContainerAgenda.style.marginLeft = 'unset';
     ContainerAgenda.style.marginLeft = 'unset';
 
@@ -347,7 +348,9 @@ function CaricaUI()
     document.addEventListener('visibilitychange', CambiamentoVisibilitàPagina, false);
 
     // Se l'utente clicca sul calendario (effettuando/togliendo manualmente una prenotazione), triggero aggiornamento della lista degli slot nella UI
-    document.querySelector('#calendar > div.fc-view-container').addEventListener('click', async() => { await sleep(1000); ElencaSlot(); } );
+    document.querySelector('#calendar > div.fc-view-container').addEventListener('click', async() => {
+        if(RiconoscimentoClickManuali) { await sleep(1000); ElencaSlot(); }
+    });
 }
 
 function CambiamentoVisibilitàPagina()
@@ -469,9 +472,9 @@ async function ElencaSlot()
         CodiceElencoSlot +=
         `<label id="CasellaSlot` + i + `" style="display: block; padding: 8px 0 8px 8px; margin: 0; background-color: ` + coloreSfondo + `">
             <input type="checkbox" style="vertical-align: top" id="CheckboxSlot` + i + `" ` + (elem.prenotato ? 'disabled' : (elem.prenotare ? 'checked' : '') ) + ` />
-		    <div style="display: inline-block; max-width: 90%;">` + DaNumeroANomeGiornoSettimana(elem.data.getDay()) + ' ' +
-                elem.data.getDate() + ' ' + DaNumeroANomeMese(elem.data.getMonth(), true) + ' 🕖' + elem.ora +
-                '<span style="background-color: ' + coloriPosti[0] + '; color: ' + coloriPosti[1] + '; border-radius: 5px; padding: 3px; margin-left: 5px;' +
+		    <span>` + DaNumeroANomeGiornoSettimana(elem.data.getDay()) + ' ' +
+                elem.data.getDate() + ' ' + DaNumeroANomeMese(elem.data.getMonth(), true) + ' 🕖&nbsp;' + elem.ora.replace(' - ', '&nbsp;-&nbsp;') + ' ' +
+                '<span style="background-color: ' + coloriPosti[0] + '; color: ' + coloriPosti[1] + '; border-radius: 5px; padding: 3px;' +
                     (coloreSfondo != 'unset' ? 'border: 1px solid black;' : '') + '">' +
                     '<span style="font-weight: bold; font-size: 110%">' + elem.PostiLiberi + '</span>&nbsp;liber' + (elem.PostiLiberi != 1 ? 'i' : 'o') +
                     '<span style="font-size: 90%; opacity: 0.8">&nbsp;su&nbsp;' + elem.capienza + '</span>' +
@@ -479,7 +482,7 @@ async function ElencaSlot()
                 (elem.titolo != '' ? '<div style="color: darkviolet; font-weight: bold;">' + elem.titolo + '</div>' : '') +
                 (elem.prenotato ? '<div style="font-face: bold; color: green">✔️Prenotato' +
                 (elem.dataPrenotazione != null ? ' il ' + FormattaData(new Date(elem.dataPrenotazione)) : '') + '</div>' : '') +
-            `</div>
+            `</span>
         </label>` +
         ( (InizioGiornoConPiuSlot || FineGiornoConPiuSlot) ? '<hr style="margin: 2px 0" />' : '');
     }
@@ -503,7 +506,9 @@ async function EseguiPrenotazioni()
     }
     ElencoPrenotazioniNecessarie.sort(OrdinamentoPerTentativoPiùLontano);
 
+    RiconoscimentoClickManuali = false;
     for(i=0; i < ElencoPrenotazioniNecessarie.length; i++) await Prenota(ElencoPrenotazioniNecessarie[i]);
+    RiconoscimentoClickManuali = true;
 }
 
 function OrdinamentoPerTentativoPiùLontano(a, b)
@@ -529,9 +534,12 @@ async function Prenota(indice)
 
     //Mi sposto alla settimana giusta
     await BottoneOggi.click();
+    //await sleep(1000);
+    //alert('Prenotazione ' + ElencoSlot[indice].data.getDate() + ' ' + DaNumeroANomeMese(ElencoSlot[indice].data.getMonth(), false) + ' ' + OrarioSintetico + ': sono in ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ', mi sposto avanti di ' + ElencoSlot[indice].IndSettimana);
     for(var i=0; i < ElencoSlot[indice].IndSettimana; i++) await BottoneAvanti.click();
 
     var elemento = RestituisciElementoTurno(ElencoSlot[indice].IndGiorno, ElencoSlot[indice].IndTurno);
+    if(elemento == null) { console.log('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' prima del click su ' + JSON.stringify(ElencoSlot[indice])); PrenotazioniInCorso--; return; }
 
     const TimestampClick = (new Date()).getTime();
     ElencoSlot[indice].dataUltimoTentativo = new Date();
@@ -543,6 +551,7 @@ async function Prenota(indice)
     while(true)
     {
         elemento = RestituisciElementoTurno(ElencoSlot[indice].IndGiorno, ElencoSlot[indice].IndTurno);
+        if(elemento == null) { console.log('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' verificando il click su ' + JSON.stringify(ElencoSlot[indice])); PrenotazioniInCorso--; return; }
         if(elemento.classList.contains('ag-slot-mine')) //Prenotazione riuscita!
         {
             // Registro nel local storage
@@ -670,7 +679,7 @@ async function ClickCasellaSlot(indice)
 {
     var CheckBox = document.getElementById('CheckboxSlot' + indice);
     var casella = CheckBox.parentElement;
-    var IndicatorePosti = casella.querySelector('div > span');
+    var IndicatorePosti = casella.querySelector('span > span');
 
     ElencoSlot[indice].prenotare = CheckBox.checked;
     localStorage.setItem(CodiceAgenda + 'ElencoSlot', JSON.stringify(ElencoSlot));
@@ -739,7 +748,7 @@ function CambiamentoFrequenza(ForzaLivello)
 function GetFrequenzaControlliMinuti()
 {
     const storage = localStorage.getItem(CodiceAgenda + 'Frequenza');
-    if(storage == null) return 5;
+    if(storage == null) return 3;
     else
     {
         if(Number(storage) == -3) return 60;
@@ -832,9 +841,7 @@ function GetPostiTotali(ElemSlot)
 function GetDataAssoluta(GiornoSettimana)
 {
     var RetVal = LunedìSettimanaVisualizzata();
-    //alert('LunedìSettimanaVisualizzata: ' + RetVal);
     RetVal.setDate(RetVal.getDate() + GiornoSettimana);
-    //alert('+' + GiornoSettimana + ': ' + RetVal);
     return RetVal;
 }
 
