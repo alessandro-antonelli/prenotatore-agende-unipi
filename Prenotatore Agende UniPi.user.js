@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prenotatore Agende UniPi
 // @namespace    https://alessandro-antonelli.github.io/
-// @version      1.4
+// @version      1.5
 // @description  Esegue automaticamente la prenotazione sul sito agende.unipi.it
 // @author       Alessandro Antonelli
 // @match        https://agende.unipi.it/*
@@ -11,7 +11,7 @@
 // ==/UserScript==
 // Source code repository; https://github.com/alessandro-antonelli/prenotatore-agende-unipi
 
-const versione = '1.4';
+const versione = '1.5';
 
 var CodiceAgenda;
 var OraAvvio;
@@ -310,7 +310,8 @@ function CaricaUI()
     RiquadroApp.id = 'RiquadroApp';
     RiquadroApp.style.minWidth = '220px';
     RiquadroApp.style.maxWidth = 'fit-content';
-    RiquadroApp.style.flex = '2 1 28vw';
+    RiquadroApp.style.height = 'fit-content';
+    RiquadroApp.style.flex = '2 1 35vw';
     RiquadroApp.style.padding = '8px';
     RiquadroApp.style.borderRadius = '20px';
     RiquadroApp.style.backgroundColor = '#DDDDDD';
@@ -324,7 +325,7 @@ function CaricaUI()
 
     var ContainerAgenda = document.querySelector("body > div > section > div.container");
     ContainerAgenda.style.minWidth = '500px';
-    ContainerAgenda.style.flex = '1 1 67vw';
+    ContainerAgenda.style.flex = '1 1 60vw';
     ContainerAgenda.style.marginLeft = 'unset';
     ContainerAgenda.style.marginLeft = 'unset';
 
@@ -431,7 +432,6 @@ async function ElencaSlot()
                             prenotato: prenotato,
                             dataPrenotazione: ( (SlotPrecedente != null && prenotato) ? SlotPrecedente.dataPrenotazione : null),
                             dataUltimoTentativo: (SlotPrecedente != null ? SlotPrecedente.dataUltimoTentativo : null),
-                            IndSettimana: s,
                             IndGiorno: g,
                             IndTurno: t,
                            };
@@ -507,7 +507,11 @@ async function EseguiPrenotazioni()
     ElencoPrenotazioniNecessarie.sort(OrdinamentoPerTentativoPiùLontano);
 
     RiconoscimentoClickManuali = false;
-    for(i=0; i < ElencoPrenotazioniNecessarie.length; i++) await Prenota(ElencoPrenotazioniNecessarie[i]);
+    for(i=0; i < ElencoPrenotazioniNecessarie.length; i++)
+    {
+        await Prenota(ElencoPrenotazioniNecessarie[i]);
+        await sleep(500); //aspetto mezzo secondo tra un click e l'altro, per evitare l'errore "too many connections"
+    }
     RiconoscimentoClickManuali = true;
 }
 
@@ -532,14 +536,15 @@ async function Prenota(indice)
     OrarioSintetico = OrarioSintetico.replace(':00', ''); OrarioSintetico = OrarioSintetico.replace(':00', '');
     Attività(ThrobberPrenotazione + ' 🖱️Cerco di prenotare lo slot ' + ElencoSlot[indice].data.getDate() + ' ' + DaNumeroANomeMese(ElencoSlot[indice].data.getMonth(), false) + ' ' + OrarioSintetico);
 
-    //Mi sposto alla settimana giusta
-    await BottoneOggi.click();
-    //await sleep(1000);
-    //alert('Prenotazione ' + ElencoSlot[indice].data.getDate() + ' ' + DaNumeroANomeMese(ElencoSlot[indice].data.getMonth(), false) + ' ' + OrarioSintetico + ': sono in ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ', mi sposto avanti di ' + ElencoSlot[indice].IndSettimana);
-    for(var i=0; i < ElencoSlot[indice].IndSettimana; i++) await BottoneAvanti.click();
+    //Mi sposto alla settimana che contiene lo slot da prenotare
+    SpostatiAllaSettimanaGiusta(ElencoSlot[indice].data);
 
     var elemento = RestituisciElementoTurno(ElencoSlot[indice].IndGiorno, ElencoSlot[indice].IndTurno);
-    if(elemento == null) { console.log('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' prima del click su ' + JSON.stringify(ElencoSlot[indice])); PrenotazioniInCorso--; return; }
+    if(elemento == null) {
+        console.error('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' prima del click su ' + JSON.stringify(ElencoSlot[indice]));
+        PrenotazioniInCorso--;
+        return;
+    }
 
     const TimestampClick = (new Date()).getTime();
     ElencoSlot[indice].dataUltimoTentativo = new Date();
@@ -551,7 +556,10 @@ async function Prenota(indice)
     while(true)
     {
         elemento = RestituisciElementoTurno(ElencoSlot[indice].IndGiorno, ElencoSlot[indice].IndTurno);
-        if(elemento == null) { console.log('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' verificando il click su ' + JSON.stringify(ElencoSlot[indice])); PrenotazioniInCorso--; return; }
+        if(elemento == null) {
+            console.error('Elemento null in settimana ' + document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML + ' verificando il click su ' + JSON.stringify(ElencoSlot[indice]));
+            break;
+        }
         if(elemento.classList.contains('ag-slot-mine')) //Prenotazione riuscita!
         {
             // Registro nel local storage
@@ -561,14 +569,13 @@ async function Prenota(indice)
             localStorage.setItem(CodiceAgenda + 'ElencoSlot', JSON.stringify(ElencoSlot));
 
             ElencaSlot(); //Aggiorno lista slot nella UI
-            PrenotazioniInCorso--;
 
             CalcolaProssimoRiavvio(); //Aggiorno data del prossimo riavvio
 
             // Avviso acustico
             var suono = new Audio(SuonoPrenotazioneFatta);
             suono.play();
-            return;
+            break;
         }
         await sleep(500);
 
@@ -576,10 +583,11 @@ async function Prenota(indice)
         if(MsPassati > 10000)
         {
             if(ElencoSlot[indice].prenotare)
-                { await RicaricaPagina('Prenotazione non riuscita'); PrenotazioniInCorso--; return; }
-            else { PrenotazioniInCorso--; return; } //Se durante l'attesa e verifica l'utente ha rimosso il suo interesse verso lo slot, non c'è bisogno di refreshare per ritentare
+                { await RicaricaPagina('Prenotazione non riuscita'); break; }
+            else break; //Se durante l'attesa e verifica l'utente ha rimosso il suo interesse verso lo slot, non c'è bisogno di refreshare per ritentare
         }
     }
+    PrenotazioniInCorso--;
 }
 
 function CalcolaProssimoRiavvio()
@@ -838,6 +846,28 @@ function GetPostiTotali(ElemSlot)
     else return 0;
 }
 
+function SpostatiAllaSettimanaGiusta(Data)
+{
+    var BottoneIndietro = document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-left > div > button.fc-prev-button.fc-button.fc-button-primary");
+    var BottoneAvanti = document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-left > div > button.fc-next-button.fc-button.fc-button-primary");
+    var BottoneOggi = document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-left > button");
+
+    const LunedìSettimanaCercata = RestituisciLunedìStessaSettimana(Data);
+
+    const StringaSettimana = document.querySelector("#calendar > div.fc-toolbar.fc-header-toolbar > div.fc-center > h2").innerHTML;
+    var LunSettimanaVisualizzata = LunedìSettimanaVisualizzata();
+
+    while(!StessoGiornoMeseAnno(LunedìSettimanaCercata, LunSettimanaVisualizzata))
+    {
+        const differenza = LunedìSettimanaCercata.getTime() - LunSettimanaVisualizzata.getTime();
+        var nuovaData = new Date(LunSettimanaVisualizzata);
+        if(differenza > 0) { BottoneAvanti.click(); nuovaData.setDate(LunSettimanaVisualizzata.getDate() + 7); }
+        else { BottoneIndietro.click(); nuovaData.setDate(LunSettimanaVisualizzata.getDate() - 7); }
+
+        LunSettimanaVisualizzata = nuovaData;
+    }
+}
+
 function GetDataAssoluta(GiornoSettimana)
 {
     var RetVal = LunedìSettimanaVisualizzata();
@@ -854,9 +884,32 @@ function LunedìSettimanaVisualizzata()
     const mese = DaNomeANumeroMese(meseStringa) - 1;
     const anno = Number(StringaDomenica.split(' ')[2]);
 
-    var data = new Date(anno, mese, giorno);
-    data.setDate(data.getDate() - 6);
-    return data;
+    return new Date(anno, mese, giorno - 6, 0, 0, 0, 0);
+}
+
+function RestituisciLunedìStessaSettimana(data)
+{
+    var GiorniDaSottrarre;
+    if(data.getDay() == 1) GiorniDaSottrarre = 0;
+    else if(data.getDay() == 2) GiorniDaSottrarre = 1;
+    else if(data.getDay() == 3) GiorniDaSottrarre = 2;
+    else if(data.getDay() == 4) GiorniDaSottrarre = 3;
+    else if(data.getDay() == 5) GiorniDaSottrarre = 4;
+    else if(data.getDay() == 6) GiorniDaSottrarre = 5;
+    else if(data.getDay() == 0) GiorniDaSottrarre = 6;
+
+    var retVal = new Date(data);
+    retVal.setDate(retVal.getDate() - GiorniDaSottrarre);
+    return retVal;
+}
+
+function StessoGiornoMeseAnno(Data1, Data2)
+{
+    if(Data1 == null || Data2 == null) return false;
+    if(Data1.getDate() == Data2.getDate() && Data1.getMonth() == Data2.getMonth() && Data1.getFullYear() == Data2.getFullYear() )
+        { return true; }
+    else
+        { return false; }
 }
 
 function DaNomeANumeroMese(StringaMese)
